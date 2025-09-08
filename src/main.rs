@@ -54,7 +54,7 @@ fn open_repository(path: PathBuf) -> ProjectInfo {
             ProjectInfo {
                 git: true,
                 remote_url: url.clone(),
-                remote_type: url.map(|url| url_to_remote_type(url)),
+                remote_type: url.map(url_to_remote_type),
             }
         }
         Err(_) => ProjectInfo {
