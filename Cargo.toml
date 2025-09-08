@@ -2,6 +2,9 @@
 name = "lsproj"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+authors = ["yutadev31"]
+repository = "https://github.com/yutadev31/lsproj"
 
 [dependencies]
 anyhow = "1.0.99"
