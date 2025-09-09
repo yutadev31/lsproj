@@ -65,18 +65,17 @@ impl Cli {
                 SetForegroundColor(Color::Reset),
             )?;
 
-            if let Some(repo) = project.repo {
-                if let Some(remote) = repo.remote
-                    && self.remote
-                {
-                    queue!(
-                        stdout(),
-                        SetForegroundColor(Color::Blue),
-                        Print("󰊢 "),
-                        Print(remote),
-                        SetForegroundColor(Color::Reset),
-                    )?;
-                }
+            if let Some(repo) = project.repo
+                && let Some(remote) = repo.remote
+                && self.remote
+            {
+                queue!(
+                    stdout(),
+                    SetForegroundColor(Color::Blue),
+                    Print("󰊢 "),
+                    Print(remote),
+                    SetForegroundColor(Color::Reset),
+                )?;
             }
 
             queue!(stdout(), Print("\n"))?;
