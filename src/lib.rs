@@ -1,7 +1,8 @@
+pub mod project;
+
 use std::{
     fs::read_dir,
     io::{Write, stdout},
-    path::PathBuf,
 };
 
 use clap::Parser;
@@ -9,7 +10,8 @@ use crossterm::{
     queue,
     style::{Color, Print, SetForegroundColor},
 };
-use git2::Repository;
+
+use crate::project::Project;
 
 #[derive(Parser)]
 pub struct Cli {
@@ -17,38 +19,21 @@ pub struct Cli {
     pub path: String,
 
     #[arg(short, long, default_value_t = false)]
-    pub remotes: bool,
+    pub remote: bool,
 
     #[arg(short, long, default_value_t = false)]
     pub git_only: bool,
 }
 
-enum RemoteType {
-    Github,
-    Other,
-}
-
-struct ProjectInfo {
-    git: bool,
-    remote_url: Option<String>,
-    remote_type: Option<RemoteType>,
-}
-
 impl Cli {
     pub fn run(&self) -> anyhow::Result<()> {
-        let mut directories: Vec<(String, ProjectInfo)> = read_dir(&self.path)?
+        let mut directories: Vec<(String, Project)> = read_dir(&self.path)?
             .filter_map(|entry| {
                 let entry = entry.ok()?;
                 let path = entry.path();
                 if path.is_dir() {
                     let repo_name = entry.file_name().to_string_lossy().to_string();
-                    let project_info = self.open_repository(path);
-
-                    if self.git_only && !project_info.git {
-                        None
-                    } else {
-                        Some((repo_name, project_info))
-                    }
+                    Some((repo_name, Project::open(&path)?))
                 } else {
                     None
                 }
@@ -63,9 +48,12 @@ impl Cli {
             .max()
             .unwrap_or(0);
 
-        for (name, repo) in directories {
-            let name_color = if repo.git { Color::Red } else { Color::Blue };
-            let type_icon = if repo.git { "󰊢 " } else { "󰉋 " };
+        for (name, project) in directories {
+            let (name_color, type_icon) = if project.repo.is_some() {
+                (Color::Red, "󰊢 ")
+            } else {
+                (Color::Blue, "󰉋 ")
+            };
 
             let name_text = format!("{:<width$}", name, width = name_width);
 
@@ -77,21 +65,18 @@ impl Cli {
                 SetForegroundColor(Color::Reset),
             )?;
 
-            if self.remotes && repo.remote_type.is_some() && repo.remote_url.is_some() {
-                let remote_type = repo.remote_type.unwrap();
-
-                let remote_icon = match remote_type {
-                    RemoteType::Github => "󰊤 ",
-                    RemoteType::Other => "󰊢 ",
-                };
-
-                queue!(
-                    stdout(),
-                    Print(remote_icon),
-                    SetForegroundColor(Color::Blue),
-                    Print(repo.remote_url.unwrap()),
-                    SetForegroundColor(Color::Reset),
-                )?;
+            if let Some(repo) = project.repo {
+                if let Some(remote) = repo.remote
+                    && self.remote
+                {
+                    queue!(
+                        stdout(),
+                        SetForegroundColor(Color::Blue),
+                        Print("󰊢 "),
+                        Print(remote),
+                        SetForegroundColor(Color::Reset),
+                    )?;
+                }
             }
 
             queue!(stdout(), Print("\n"))?;
@@ -99,36 +84,5 @@ impl Cli {
         stdout().flush()?;
 
         Ok(())
-    }
-
-    fn get_remote_url(&self, repo: &Repository) -> Option<String> {
-        let remote = repo.find_remote("origin").ok()?;
-        remote.url().map(|url| url.to_string())
-    }
-
-    fn url_to_remote_type(&self, url: String) -> RemoteType {
-        if url.contains("github.com") {
-            RemoteType::Github
-        } else {
-            RemoteType::Other
-        }
-    }
-
-    fn open_repository(&self, path: PathBuf) -> ProjectInfo {
-        match Repository::open(path) {
-            Ok(repo) => {
-                let url = self.get_remote_url(&repo);
-                ProjectInfo {
-                    git: true,
-                    remote_url: url.clone(),
-                    remote_type: url.map(|url| self.url_to_remote_type(url)),
-                }
-            }
-            Err(_) => ProjectInfo {
-                git: false,
-                remote_url: None,
-                remote_type: None,
-            },
-        }
     }
 }
