@@ -8,6 +8,6 @@ repository = "https://github.com/yutadev31/lsproj"
 
 [dependencies]
 anyhow = "1.0.99"
-clap = { version = "4.5.47", features = ["derive"] }
+clap = { version = "4.5.48", features = ["derive"] }
 crossterm = "0.29.0"
 git2 = "0.20.2"
