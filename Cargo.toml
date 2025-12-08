@@ -10,4 +10,4 @@ repository = "https://github.com/yutadev31/lsproj"
 anyhow = "1.0.100"
 clap = { version = "4.5.47", features = ["derive"] }
 crossterm = "0.29.0"
-git2 = "0.20.2"
+git2 = "0.20.3"
